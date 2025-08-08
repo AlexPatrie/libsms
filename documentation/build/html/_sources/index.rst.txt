@@ -1,9 +1,9 @@
-.. smslib documentation master file, created by
+.. libsms documentation master file, created by
    sphinx-quickstart on Tue Jul 15 14:51:05 2025.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-smslib documentation
+libsms documentation
 ====================================
 
 Welcome to the developer docs for the Atlantis simulation API.
@@ -16,7 +16,7 @@ Welcome to the developer docs for the Atlantis simulation API.
    modules
 
 
-.. automodule:: smslib
+.. automodule:: libsms
    :members:
    :undoc-members:
    :show-inheritance:
