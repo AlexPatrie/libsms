@@ -2,7 +2,7 @@
 Getting Started
 ================
 
-Welcome to the project! This guide will help you get up and running quickly.
+Welcome to the libsms!
 
 Installation
 ============
@@ -11,7 +11,7 @@ To install with PIP:
 
 .. code-block:: bash
 
-   pip install smsapi-lib
+   pip install libsms
 
 To install with an environment manager:
 We hightly recommend using an environment manager like UV. Check out the documentation
@@ -19,7 +19,7 @@ for UV here: https://docs.astral.sh/uv/
 
 .. code-block:: bash
 
-    uv add smsapi-lib
+    uv add libsms
 
 Quick Example (getting observables data)
 ========================================
