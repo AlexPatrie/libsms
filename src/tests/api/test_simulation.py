@@ -26,6 +26,6 @@ async def test_get_status(example_experiment: dm.EcoliExperiment) -> None:
 async def test_get_analysis_manifest(example_experiment: dm.EcoliExperiment) -> None:
     experiment = example_experiment
     manifest = await api.get_analysis_manifest(experiment=experiment)
-    # assert manifest is not None
-    # assert isinstance(manifest.values()[0], list)
+    assert manifest is not None
+    assert isinstance(manifest.values()[0], list)
     utils.plog('test_get_analysis_manifest', manifest)
