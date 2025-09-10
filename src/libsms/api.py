@@ -8,6 +8,24 @@ import polars as pl
 
 __all__ = ['get_observables_data']
 
+
+def run_simulation(config_id: str):
+    url = f"https://sms.cam.uchc.edu/wcm/simulation/run?config_id={config_id}"
+    response = requests.post(url, headers={"Accept": "*/*"})
+    if response.status_code != 200:
+        raise Exception(f"HTTP error! status: {response.status_code}")
+    return response.json()
+
+
+def get_status(experiment: dict):
+    tag = experiment['experiment_tag']
+    url = f"https://sms.cam.uchc.edu/wcm/simulation/run/status?experiment_tag={tag}"
+    response = requests.get(url, headers={"Accept": "*/*"})
+    if response.status_code != 200:
+        raise Exception(f"HTTP error! status: {response.status_code}")
+    return response.json()
+
+
 def unzip_parquet(zip_file_path: Path, local_dirpath: Path):
     extraction_path = local_dirpath
     try:
