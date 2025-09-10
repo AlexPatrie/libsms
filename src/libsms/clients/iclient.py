@@ -1,13 +1,9 @@
-from abc import ABC, abstractmethod
 import asyncio
-from textwrap import dedent
-from pprint import pp
-from asyncio import sleep
+from abc import ABC, abstractmethod
 
 import httpx
-import marimo as mo
 
-from libsms.data_model import Overrides, Variants, EcoliExperiment
+from libsms.data_model import EcoliExperiment
 
 
 class IClient(ABC):
@@ -15,8 +11,14 @@ class IClient(ABC):
     delay_s: float
     verbose: bool
     timeout: float
-    
-    def __init__(self, max_retries: int | None = None, delay: float | None = None, verbose: bool | None = None, timeout: float | None = None):
+
+    def __init__(
+        self,
+        max_retries: int | None = None,
+        delay: float | None = None,
+        verbose: bool | None = None,
+        timeout: float | None = None,
+    ):
         self.max_retries = max_retries or 20
         self.delay_s = delay or 1.0
         self.verbose = verbose or False
@@ -61,11 +63,7 @@ class IClient(ABC):
 
         url = self.get_url(**params)
         method = client.post if method_type.lower() == "post" else client.get
-        kwargs = {
-            "url": url,
-            "headers": {"Accept": "application/json"},
-            "timeout": self.timeout
-        }
+        kwargs = {"url": url, "headers": {"Accept": "application/json"}, "timeout": self.timeout}
         if method_type.lower() == "post":
             kwargs["json"] = self.body()
 

@@ -18,6 +18,10 @@ jobs:
         run: |
           wget -qO- https://astral.sh/uv/install.sh | sh
 
-      - name: Run Pytest
+      - name: Run Quality Check
         run: |
-          uv run pytest -s 
+          make check
+
+      - name: Run Tests
+        run: |
+          uv run pytest -s

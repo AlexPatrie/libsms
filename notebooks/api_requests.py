@@ -7,7 +7,6 @@ app = marimo.App(width="full")
 @app.cell
 def _():
     import requests
-    from httpx import Client, QueryParams, HTTPStatusError
 
     def run_simulation(config_id: str):
         url = f"https://sms.cam.uchc.edu/wcm/simulation/run?config_id={config_id}"
@@ -16,14 +15,14 @@ def _():
             raise Exception(f"HTTP error! status: {response.status_code}")
         return response.json()
 
-
     def get_status(experiment: dict):
-        tag = experiment['experiment_tag']
+        tag = experiment["experiment_tag"]
         url = f"https://sms.cam.uchc.edu/wcm/simulation/run/status?experiment_tag={tag}"
         response = requests.get(url, headers={"Accept": "*/*"})
         if response.status_code != 200:
             raise Exception(f"HTTP error! status: {response.status_code}")
         return response.json()
+
     return get_status, run_simulation
 
 

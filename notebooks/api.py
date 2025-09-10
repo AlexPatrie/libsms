@@ -7,26 +7,30 @@ app = marimo.App(width="full")
 @app.cell
 def _():
     import asyncio
-    from textwrap import dedent
-    from pprint import pp
     from asyncio import sleep
 
     import httpx
-    import marimo as mo
 
-    from libsms.data_model import Overrides, Variants, EcoliExperiment
+    from libsms.data_model import EcoliExperiment
+
     return EcoliExperiment, asyncio, httpx, sleep
 
 
 @app.cell
 def _(EcoliExperiment, asyncio, client, httpx):
-    from abc import ABC, abstractmethod
+    from abc import abstractmethod
 
     class iclient:
-        def __init__(self, max_retries: int | None = None, delay: float | None = None, verbose: bool | None = None, timeout: float | None = None):
+        def __init__(
+            self,
+            max_retries: int | None = None,
+            delay: float | None = None,
+            verbose: bool | None = None,
+            timeout: float | None = None,
+        ):
             self.max_retries = max_retries or 20
-            self.delay_s = delay or 1.0 
-            self.verbose = verbose or False 
+            self.delay_s = delay or 1.0
+            self.verbose = verbose or False
             self.timeout = timeout or 30.0
 
         @property
@@ -68,11 +72,7 @@ def _(EcoliExperiment, asyncio, client, httpx):
 
             url = self.get_url(**params)
             method = client.post if method_type.lower() == "post" else client.get
-            kwargs = {
-                "url": url, 
-                "headers": {"Accept": "application/json"},
-                "timeout": self.timeout
-            }
+            kwargs = {"url": url, "headers": {"Accept": "application/json"}, "timeout": self.timeout}
             if method_type.lower() == "post":
                 kwargs["json"] = self.body()
 
@@ -97,16 +97,14 @@ def _(EcoliExperiment, asyncio, client, httpx):
                             print(f"Attempt {attempt} failed:", err)
                             raise
                         await asyncio.sleep(delay_s)
+
     return
 
 
 @app.cell
 def _(EcoliExperiment, asyncio, httpx, sleep):
     async def run_simulation(
-        config_id: str,
-        max_retries: int = 20,
-        delay_s: float = 1.0,
-        verbose: bool = False
+        config_id: str, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
     ) -> EcoliExperiment:
         url = f"https://sms.cam.uchc.edu/wcm/simulation/run?config_id={config_id}"
         body = {
@@ -142,10 +140,7 @@ def _(EcoliExperiment, asyncio, httpx, sleep):
                     await asyncio.sleep(delay_s)
 
     async def check_simulation_status(
-        experiment: EcoliExperiment | None,
-        max_retries: int = 20,
-        delay_s: float = 1.0,
-        verbose: bool = False
+        experiment: EcoliExperiment | None, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
     ) -> EcoliExperiment:
         if experiment is None:
             raise ValueError("Wait till the experiment is generated...")
@@ -179,10 +174,7 @@ def _(EcoliExperiment, asyncio, httpx, sleep):
                     await asyncio.sleep(delay_s)
 
     async def get_analysis_manifest(
-        experiment: EcoliExperiment | None,
-        max_retries: int = 20,
-        delay_s: float = 1.0,
-        verbose: bool = False
+        experiment: EcoliExperiment | None, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
     ) -> EcoliExperiment:
         if experiment is None:
             raise ValueError("Wait till the experiment is generated...")
@@ -217,7 +209,7 @@ def _(EcoliExperiment, asyncio, httpx, sleep):
 
     async def onrun(config_id: str):
         # config_id = input("Enter the config ID (press enter to use default of sms_single): ") or "sms_single"
-        print(f'Using config id: {config_id}')
+        print(f"Using config id: {config_id}")
         return await run_simulation(config_id=config_id)
 
     async def onstatus(experiment):
@@ -230,6 +222,7 @@ def _(EcoliExperiment, asyncio, httpx, sleep):
 
     async def onmanifest(experiment):
         return await get_analysis_manifest(experiment=experiment)
+
     return onmanifest, onrun, onstatus
 
 
@@ -247,7 +240,7 @@ async def _(onrun):
 @app.cell
 async def _(experiment, onmanifest, onstatus):
     status = await onstatus(experiment)
-    if status['status'] == "completed":
+    if status["status"] == "completed":
         print(await onmanifest(experiment))
     return
 

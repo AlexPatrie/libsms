@@ -6,9 +6,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'libsms'
-copyright = '2025, Alexander Patrie'
-author = 'Alexander Patrie'
+project = "libsms"
+copyright = "2025, Alexander Patrie"
+author = "Alexander Patrie"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

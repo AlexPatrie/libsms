@@ -1,4 +1,4 @@
-.PHONY: fresh notebook test docs publish
+.PHONY: fresh notebook test docs publish check
 
 fresh:
 	@uv cache clean && rm -f uv.lock && uv lock --no-cache && uv sync --all-groups --no-cache
@@ -19,3 +19,13 @@ publish:
 	uv build; \
 	uv publish --username "__token__" --password $$token; \
 	make docs
+
+check: ## Run code quality tools.
+	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
+	@uv lock --locked
+	@echo "🚀 Linting code: Running pre-commit"
+	@uv run pre-commit run -a
+	@echo "🚀 Static type checking: Running mypy"
+	@uv run mypy
+	@echo "🚀 Checking for obsolete dependencies: Running deptry"
+	@uv run deptry .
