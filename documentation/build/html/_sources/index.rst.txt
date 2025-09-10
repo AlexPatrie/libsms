@@ -13,7 +13,6 @@ Welcome to the developer docs for the Atlantis simulation API.
    :caption: Contents:
 
    getting_started
-   modules
 
 
 .. automodule:: libsms
