@@ -10,7 +10,7 @@ test:
 	@uv run pytest -s
 
 docs:
-	@cd documentation && uv run make clean && uv run make html && cd ..
+	@cd documentation && uv run make clean && uv run make html && cd .. && git add --all && git commit -m "Updates to documentation" && git push
 
 publish:
 	@make fresh; \
