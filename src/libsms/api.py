@@ -10,10 +10,50 @@ import requests
 
 from libsms.data_model import EcoliExperiment, SimulationRun
 
-__all__ = ["check_simulation_status", "get_analysis_manifest", "get_observables_data", "run_simulation"]
+__all__ = ["analysis_manifest", "ecoli_experiment", "observables_data", "simulation_status"]
 
 
-async def run_simulation(
+def ecoli_experiment(
+    config_id: str, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False, **body: dict[str, Any]
+) -> EcoliExperiment | None:
+    return asyncio.run(_run_simulation(config_id, max_retries, delay_s, verbose, **body))
+
+
+def simulation_status(
+    experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
+) -> SimulationRun | None:
+    return asyncio.run(_check_simulation_status(experiment, max_retries, delay_s, verbose))
+
+
+def analysis_manifest(
+    experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
+) -> dict[str, Any] | None | Any:
+    return asyncio.run(_get_analysis_manifest(experiment, max_retries, delay_s, verbose))
+
+
+def observables_data(observables: list[str] | None = None, experiment_id: str | None = None) -> pl.DataFrame:
+    """Get the output data from parquet files generated from a given vEcoli simulation as a
+    dataframe containing all simulation timepoints.
+
+    :param observables: list of observables(dataframe columns) to include. If None is passed, defaults to all columns.
+    :param experiment_id: the experiment ID for the simulation that you wish to query.
+        If None is passed, defaults to the example pinned simulation: "sms_single".
+
+    :rtype: polars.DataFrame
+    :return: A dataframe containing all simulation timepoints.
+
+    """
+    expid = experiment_id or "sms_single"
+    tmpdir = tempfile.TemporaryDirectory()
+    dirpath = Path(tmpdir.name)
+    zippath = download_parquet(dirpath, expid)
+    unzip_parquet(zippath, dirpath)
+    df = pl.scan_parquet(f"{dirpath!s}/*.pq").select(observables).collect()
+    tmpdir.cleanup()
+    return df
+
+
+async def _run_simulation(
     config_id: str, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False, **body: dict[str, Any]
 ) -> EcoliExperiment | None:
     """Run a SMS API vEcoli simulation workflow.
@@ -63,7 +103,7 @@ async def run_simulation(
     return None
 
 
-async def check_simulation_status(
+async def _check_simulation_status(
     experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
 ) -> SimulationRun | None:
     """Run a SMS API vEcoli simulation workflow.
@@ -104,7 +144,7 @@ async def check_simulation_status(
     return None
 
 
-async def get_analysis_manifest(
+async def _get_analysis_manifest(
     experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
 ) -> dict[str, Any] | None | Any:
     url = f"https://sms.cam.uchc.edu/wcm/analysis/outputs?experiment_id={experiment.experiment_id}"
@@ -161,25 +201,3 @@ def download_parquet(local_dirpath: Path, experiment_id: str) -> Path:
         f.write(response.content)
 
     return zippath
-
-
-def get_observables_data(observables: list[str] | None = None, experiment_id: str | None = None) -> pl.DataFrame:
-    """Get the output data from parquet files generated from a given vEcoli simulation as a
-    dataframe containing all simulation timepoints.
-
-    :param observables: list of observables(dataframe columns) to include. If None is passed, defaults to all columns.
-    :param experiment_id: the experiment ID for the simulation that you wish to query.
-        If None is passed, defaults to the example pinned simulation: "sms_single".
-
-    :rtype: polars.DataFrame
-    :return: A dataframe containing all simulation timepoints.
-
-    """
-    expid = experiment_id or "sms_single"
-    tmpdir = tempfile.TemporaryDirectory()
-    dirpath = Path(tmpdir.name)
-    zippath = download_parquet(dirpath, expid)
-    unzip_parquet(zippath, dirpath)
-    df = pl.scan_parquet(f"{dirpath!s}/*.pq").select(observables).collect()
-    tmpdir.cleanup()
-    return df

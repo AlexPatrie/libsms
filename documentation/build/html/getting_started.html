@@ -10,7 +10,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
-
+  
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=5929fcd5"></script>
@@ -19,17 +19,17 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="libsms documentation" href="index.html" />
+    <link rel="prev" title="libsms documentation" href="index.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
 
-
-
+          
+          
           <a href="index.html" class="icon icon-home">
             libsms
           </a>
@@ -45,7 +45,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#quick-example-getting-observables-data">Quick Example (getting observables data)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quick-example">Quick Example</a></li>
 </ul>
 </li>
 </ul>
@@ -73,7 +73,7 @@
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-
+             
   <section id="getting-started">
 <h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
 <p>Welcome to the libsms!</p>
@@ -90,13 +90,25 @@ for UV here: <a class="reference external" href="https://docs.astral.sh/uv/">htt
 </pre></div>
 </div>
 </section>
-<section id="quick-example-getting-observables-data">
-<h2>Quick Example (getting observables data)<a class="headerlink" href="#quick-example-getting-observables-data" title="Link to this heading"></a></h2>
-<p>Here’s the simplest way to run it:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">libsms</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_observables_data</span>
+<section id="quick-example">
+<h2>Quick Example<a class="headerlink" href="#quick-example" title="Link to this heading"></a></h2>
+<p>Here’s the simplest way to run a full vEcoli workflow via the SMS REST API:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">libsms</span> <span class="n">ecoli_experiment</span><span class="p">,</span> <span class="n">simulation_status</span><span class="p">,</span> <span class="n">analysis_manifest</span>
 
-<span class="n">obs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">]</span>
-<span class="n">df</span> <span class="o">=</span> <span class="n">get_observables_data</span><span class="p">(</span><span class="n">observables</span><span class="o">=</span><span class="n">obs</span><span class="p">)</span>
+<span class="c1"># 1.) Generate and run a simulation experiment</span>
+<span class="c1"># ========================================== #</span>
+<span class="n">config_id</span> <span class="o">=</span> <span class="s2">&quot;sms&quot;</span>  <span class="c1"># config id for the &quot;core&quot; single-cell simulation</span>
+<span class="n">experiment</span> <span class="o">=</span> <span class="n">ecoli_experiment</span><span class="p">(</span><span class="n">config_id</span><span class="o">=</span><span class="n">config_id</span><span class="p">)</span>
+
+<span class="c1"># 2.) Check the simulation experiment status</span>
+<span class="c1"># ======================================== #</span>
+<span class="n">status</span> <span class="o">=</span> <span class="n">simulation_status</span><span class="p">(</span><span class="n">experiment</span><span class="o">=</span><span class="n">experiment</span><span class="p">)</span>
+
+<span class="c1"># 3.) Get manifest of available analysis outputs</span>
+<span class="c1"># ============================================ #</span>
+<span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;completed&quot;</span><span class="p">:</span>
+    <span class="n">available_analysis_outputs</span> <span class="o">=</span> <span class="n">analysis_manifest</span><span class="p">(</span><span class="n">experiment</span><span class="o">=</span><span class="n">experiment</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">available_analysis_outputs</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -118,7 +130,7 @@ for UV here: <a class="reference external" href="https://docs.astral.sh/uv/">htt
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     provided by <a href="https://readthedocs.org">Read the Docs</a>.
-
+   
 
 </footer>
         </div>
@@ -129,7 +141,7 @@ for UV here: <a class="reference external" href="https://docs.astral.sh/uv/">htt
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
+  </script> 
 
 </body>
 </html>
