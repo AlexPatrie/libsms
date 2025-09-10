@@ -17,4 +17,5 @@ publish:
 	token=$$(cat ./assets/.pypi.token); \
 	rm -rf dist/; \
 	uv build; \
-	uv publish --username "__token__" --password $$token;
+	uv publish --username "__token__" --password $$token; \
+	make docs
