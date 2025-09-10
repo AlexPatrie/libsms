@@ -1,4 +1,4 @@
-.PHONY: fresh notebook test docs publish check
+.PHONY: fresh notebook test docs publish check python
 
 fresh:
 	@uv cache clean && rm -f uv.lock && uv lock --no-cache && uv sync --all-groups --no-cache
@@ -29,3 +29,6 @@ check: ## Run code quality tools.
 	@uv run mypy
 	@echo "🚀 Checking for obsolete dependencies: Running deptry"
 	@uv run deptry .
+
+python:
+	@uv run python -m asyncio
