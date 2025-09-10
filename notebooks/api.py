@@ -9,27 +9,104 @@ def _():
     import asyncio
     from textwrap import dedent
     from pprint import pp
+    from asyncio import sleep
 
     import httpx
     import marimo as mo
 
     from libsms.data_model import Overrides, Variants, EcoliExperiment
-    return EcoliExperiment, asyncio, httpx, mo
+    return EcoliExperiment, asyncio, httpx, sleep
 
 
 @app.cell
-def _(mo):
-    get_experiment, set_experiment = mo.state(None)
-    get_status, set_status = mo.state(None)
+def _(EcoliExperiment, asyncio, client, httpx):
+    from abc import ABC, abstractmethod
+
+    class iclient:
+        def __init__(self, max_retries: int | None = None, delay: float | None = None, verbose: bool | None = None, timeout: float | None = None):
+            self.max_retries = max_retries or 20
+            self.delay_s = delay or 1.0 
+            self.verbose = verbose or False 
+            self.timeout = timeout or 30.0
+
+        @property
+        async def value(self):
+            return await self._execute(**self.params())
+
+        @abstractmethod
+        def params(self):
+            pass
+
+        @abstractmethod
+        def method_type(self):
+            pass
+
+        @abstractmethod
+        def url(self) -> str:
+            pass
+
+        @abstractmethod
+        def body(self) -> dict | None:
+            pass
+
+        def get_url(self, **params):
+            url = self.url()
+            if params:
+                url += "?"
+                for pname, pval in params.items():
+                    url += f"{pname}={pval}"
+            return url
+
+        async def _execute(
+            self,
+            **params,
+        ) -> EcoliExperiment:
+            method_type = self.method_type()
+            max_retries = self.max_retries
+            delay_s = self.delay_s
+            verbose = self.verbose
+
+            url = self.get_url(**params)
+            method = client.post if method_type.lower() == "post" else client.get
+            kwargs = {
+                "url": url, 
+                "headers": {"Accept": "application/json"},
+                "timeout": self.timeout
+            }
+            if method_type.lower() == "post":
+                kwargs["json"] = self.body()
+
+            attempt = 0
+            async with httpx.AsyncClient() as client:
+                while attempt < max_retries:
+                    attempt += 1
+                    try:
+                        if verbose:
+                            print(f"Attempt {attempt}...")
+                        response = await method(**kwargs)
+
+                        response.raise_for_status()  # raises for 4xx/5xx
+
+                        data = response.json()
+                        if verbose:
+                            print("Success on attempt", attempt)
+                        return EcoliExperiment(**data)
+
+                    except (httpx.RequestError, httpx.HTTPStatusError) as err:
+                        if attempt == max_retries:
+                            print(f"Attempt {attempt} failed:", err)
+                            raise
+                        await asyncio.sleep(delay_s)
     return
 
 
 @app.cell
-def _(EcoliExperiment, asyncio, httpx):
+def _(EcoliExperiment, asyncio, httpx, sleep):
     async def run_simulation(
         config_id: str,
         max_retries: int = 20,
-        delay_s: float = 1.0 
+        delay_s: float = 1.0,
+        verbose: bool = False
     ) -> EcoliExperiment:
         url = f"https://sms.cam.uchc.edu/wcm/simulation/run?config_id={config_id}"
         body = {
@@ -42,7 +119,8 @@ def _(EcoliExperiment, asyncio, httpx):
             while attempt < max_retries:
                 attempt += 1
                 try:
-                    print(f"Attempt {attempt}...")
+                    if verbose:
+                        print(f"Attempt {attempt}...")
                     response = await client.post(
                         url,
                         json=body,
@@ -53,7 +131,8 @@ def _(EcoliExperiment, asyncio, httpx):
                     response.raise_for_status()  # raises for 4xx/5xx
 
                     data = response.json()
-                    print("Success on attempt", attempt)
+                    if verbose:
+                        print("Success on attempt", attempt)
                     return EcoliExperiment(**data)
 
                 except (httpx.RequestError, httpx.HTTPStatusError) as err:
@@ -65,7 +144,8 @@ def _(EcoliExperiment, asyncio, httpx):
     async def check_simulation_status(
         experiment: EcoliExperiment | None,
         max_retries: int = 20,
-        delay_s: float = 1.0 
+        delay_s: float = 1.0,
+        verbose: bool = False
     ) -> EcoliExperiment:
         if experiment is None:
             raise ValueError("Wait till the experiment is generated...")
@@ -77,7 +157,8 @@ def _(EcoliExperiment, asyncio, httpx):
             while attempt < max_retries:
                 attempt += 1
                 try:
-                    print(f"Attempt {attempt}...")
+                    if verbose:
+                        print(f"Attempt {attempt}...")
                     response = await client.get(
                         url,
                         headers={"Accept": "application/json"},
@@ -87,7 +168,8 @@ def _(EcoliExperiment, asyncio, httpx):
                     response.raise_for_status()  # raises for 4xx/5xx
 
                     data = response.json()
-                    print("Success on attempt", attempt)
+                    if verbose:
+                        print("Success on attempt", attempt)
                     return data
 
                 except (httpx.RequestError, httpx.HTTPStatusError) as err:
@@ -96,40 +178,82 @@ def _(EcoliExperiment, asyncio, httpx):
                         raise
                     await asyncio.sleep(delay_s)
 
-    async def onrun(*args):
-        config_id = input("Enter the config ID (press enter to use default of sms_single): ") or "sms_single"
+    async def get_analysis_manifest(
+        experiment: EcoliExperiment | None,
+        max_retries: int = 20,
+        delay_s: float = 1.0,
+        verbose: bool = False
+    ) -> EcoliExperiment:
+        if experiment is None:
+            raise ValueError("Wait till the experiment is generated...")
+
+        url = f"https://sms.cam.uchc.edu/wcm/analysis/outputs?experiment_id={experiment.experiment_id}"
+
+        attempt = 0
+        async with httpx.AsyncClient() as client:
+            while attempt < max_retries:
+                attempt += 1
+                try:
+                    if verbose:
+                        print(f"Attempt {attempt}...")
+                    response = await client.get(
+                        url,
+                        headers={"Accept": "application/json"},
+                        timeout=30.0,  # optional, adjust as needed
+                    )
+
+                    response.raise_for_status()  # raises for 4xx/5xx
+
+                    data = response.json()
+                    if verbose:
+                        print("Success on attempt", attempt)
+                    return data
+
+                except (httpx.RequestError, httpx.HTTPStatusError) as err:
+                    if attempt == max_retries:
+                        print(f"Attempt {attempt} failed:", err)
+                        raise
+                    await asyncio.sleep(delay_s)
+
+    async def onrun(config_id: str):
+        # config_id = input("Enter the config ID (press enter to use default of sms_single): ") or "sms_single"
         print(f'Using config id: {config_id}')
-        return await run_simulation(config_id=config_id, *args)
-    return check_simulation_status, onrun
+        return await run_simulation(config_id=config_id)
+
+    async def onstatus(experiment):
+        stat = None
+        if experiment is not None:
+            await sleep(3.0)
+            stat = await check_simulation_status(experiment=experiment)
+            print(stat)
+        return stat
+
+    async def onmanifest(experiment):
+        return await get_analysis_manifest(experiment=experiment)
+    return onmanifest, onrun, onstatus
 
 
 @app.cell
 async def _(onrun):
-    from asyncio import sleep
-
     MAX_RETRIES = 20
     DELAY = 1.0
-    experiment = await onrun()
+
+    config_id = input("Enter the config ID (press enter to use default of sms): ") or "sms"
+    experiment = await onrun(config_id)
     experiment
-    return experiment, sleep
+    return (experiment,)
 
 
 @app.cell
-def _(check_simulation_status, sleep):
-    async def status(experiment):
-        stat = None
-        if experiment is not None:
-            sleep(3.0)
-            stat = await check_simulation_status(experiment=experiment)
-            print(status)
-        return stat
-        
-    return (status,)
+async def _(experiment, onmanifest, onstatus):
+    status = await onstatus(experiment)
+    if status['status'] == "completed":
+        print(await onmanifest(experiment))
+    return
 
 
 @app.cell
-async def _(experiment, status):
-    await status(experiment)
+def _():
     return
 
 

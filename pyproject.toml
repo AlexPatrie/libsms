@@ -22,7 +22,15 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "debugpy>=1.8.16",
+    "deptry>=0.23.1",
+    "mypy>=1.17.1",
     "pytest>=8.4.2",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=7.0.0",
+    "tox>=4.30.2",
+    "types-pyyaml>=6.0.12.20250822",
+    "types-requests>=2.32.4.20250809",
 ]
 docs = [
     "sphinx>=8.2.3",
@@ -32,3 +40,8 @@ docs = [
 notebooks = [
     "marimo>=0.15.2",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["src/tests"]
+addopts = "--cov-report=html"
+
