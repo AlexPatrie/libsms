@@ -1,4 +1,4 @@
-.PHONY: fresh notebook test docs
+.PHONY: fresh notebook test docs publish
 
 fresh:
 	@uv cache clean && rm -f uv.lock && uv lock --no-cache && uv sync --all-groups --no-cache
@@ -11,3 +11,10 @@ test:
 
 docs:
 	@cd documentation && uv run make clean && uv run make html && cd ..
+
+publish:
+	@make fresh; \
+	token=$$(cat ./.pypi.token); \
+	rm -rf dist/; \
+	uv build; \
+	uv publish --username "__token__" --password $$token;
