@@ -5,4 +5,4 @@ __pycache__/
 lock/
 .idea/
 dist/
-.pypi.token
+assets/.pypi.token

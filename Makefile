@@ -14,7 +14,7 @@ docs:
 
 publish:
 	@make fresh; \
-	token=$$(cat ./.pypi.token); \
+	token=$$(cat ./assets/.pypi.token); \
 	rm -rf dist/; \
 	uv build; \
 	uv publish --username "__token__" --password $$token;
