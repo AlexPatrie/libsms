@@ -17,19 +17,19 @@ __all__ = ["analysis_manifest", "ecoli_experiment", "observables_data", "simulat
 def ecoli_experiment(
     config_id: str, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False, **body: dict[str, Any]
 ) -> EcoliExperiment | None:
-    return asyncio.run(_run_simulation(config_id, max_retries, delay_s, verbose, **body))
+    return asyncio.run(run_simulation(config_id, max_retries, delay_s, verbose, **body))
 
 
 def simulation_status(
     experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
 ) -> SimulationRun | None:
-    return asyncio.run(_check_simulation_status(experiment, max_retries, delay_s, verbose))
+    return asyncio.run(check_simulation_status(experiment, max_retries, delay_s, verbose))
 
 
 def analysis_manifest(
     experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
 ) -> dict[str, Any] | None | Any:
-    return asyncio.run(_get_analysis_manifest(experiment, max_retries, delay_s, verbose))
+    return asyncio.run(get_analysis_manifest(experiment, max_retries, delay_s, verbose))
 
 
 def observables_data(observables: list[str] | None = None, experiment_id: str | None = None) -> pl.DataFrame:
@@ -54,7 +54,7 @@ def observables_data(observables: list[str] | None = None, experiment_id: str | 
     return df
 
 
-async def _run_simulation(
+async def run_simulation(
     config_id: str, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False, **body: dict[str, Any]
 ) -> EcoliExperiment | None:
     """Run a SMS API vEcoli simulation workflow.
@@ -78,7 +78,7 @@ async def _run_simulation(
     attempt = 0
     pbar = tqdm(total=max_retries)
     async with httpx.AsyncClient() as client:
-        print(f'Running a simulation with config id: {config_id}...')
+        print(f"Running a simulation with config id: {config_id}...")
         while attempt < max_retries:
             attempt += 1
             pbar.update(1)
@@ -98,7 +98,7 @@ async def _run_simulation(
                 if verbose:
                     print("Success on attempt", attempt)
                 pbar.total = attempt
-                print('Simulation submitted!')
+                print("Simulation submitted!")
                 pbar.close()
                 return EcoliExperiment(**data)
 
@@ -111,7 +111,7 @@ async def _run_simulation(
     return None
 
 
-async def _check_simulation_status(
+async def check_simulation_status(
     experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
 ) -> SimulationRun | None:
     """Run a SMS API vEcoli simulation workflow.
@@ -123,12 +123,14 @@ async def _check_simulation_status(
     :rtype: SimulationRun
     :return: SimulationRun confirming run status (status will be one of "waiting", "running", "completed", "failed"
     """
-    pbar = tqdm(total=None)
+    pbar = tqdm(total=max_retries)
     url = f"https://sms.cam.uchc.edu/wcm/simulation/run/status?experiment_tag={experiment.experiment_tag}"
     attempt = 0
     async with httpx.AsyncClient() as client:
+        print(f"Checking simulation status for experiment: {experiment.experiment_tag}...")
         while attempt < max_retries:
             attempt += 1
+            pbar.update(1)
             try:
                 if verbose:
                     print(f"Attempt {attempt}...")
@@ -143,6 +145,8 @@ async def _check_simulation_status(
                 data = response.json()
                 if verbose:
                     print("Success on attempt", attempt)
+                pbar.total = attempt
+                pbar.close()
                 return SimulationRun(**data)
 
             except (httpx.RequestError, httpx.HTTPStatusError) as err:
@@ -155,14 +159,17 @@ async def _check_simulation_status(
     return None
 
 
-async def _get_analysis_manifest(
+async def get_analysis_manifest(
     experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
 ) -> dict[str, Any] | None | Any:
     url = f"https://sms.cam.uchc.edu/wcm/analysis/outputs?experiment_id={experiment.experiment_id}"
+    pbar = tqdm(total=max_retries)
     attempt = 0
     async with httpx.AsyncClient() as client:
+        print(f"Getting analysis manifest for experiment: {experiment.experiment_id}...")
         while attempt < max_retries:
             attempt += 1
+            pbar.update(1)
             try:
                 if verbose:
                     print(f"Attempt {attempt}...")
@@ -177,6 +184,8 @@ async def _get_analysis_manifest(
                 data = response.json()
                 if verbose:
                     print("Success on attempt", attempt)
+                pbar.total = attempt
+                pbar.close()
                 return data
 
             except (httpx.RequestError, httpx.HTTPStatusError) as err:
@@ -184,6 +193,7 @@ async def _get_analysis_manifest(
                     print(f"Attempt {attempt} failed:", err)
                     raise
                 await asyncio.sleep(delay_s)
+    pbar.close()
     return None
 
 
