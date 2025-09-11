@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from libsms.data_model import EcoliExperiment, SimulationRun
 
-__all__ = ["analysis_manifest", "analysis_output", "ecoli_experiment", "observables_data", "simulation_status"]
+__all__ = ["analysis_manifest", "analysis_output", "ecoli_experiment", "observables_data", "simulation_status", "simulation_log"]
 
 
 def ecoli_experiment(
@@ -91,6 +91,30 @@ def observables_data(observables: list[str] | None = None, experiment_id: str | 
     df = pl.scan_parquet(f"{dirpath!s}/*.pq").select(observables).collect()
     tmpdir.cleanup()
     return df
+
+
+def simulation_log(experiment: EcoliExperiment) -> str:
+    return get_simulation_log(experiment)
+
+
+def get_simulation_log(experiment: EcoliExperiment) -> str:
+    import requests
+    import json
+
+    url = "https://sms.cam.uchc.edu/wcm/simulation/run/log"
+
+    payload = json.loads(experiment.model_dump_json())
+
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+
+    # Get JSON response
+    data = response.json()
+    return data
 
 
 async def run_simulation(

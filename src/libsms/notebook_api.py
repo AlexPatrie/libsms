@@ -1,9 +1,9 @@
 from typing import Any
 
-from libsms.api import check_simulation_status, download_analysis_output, get_analysis_manifest, run_simulation
+from libsms.api import check_simulation_status, download_analysis_output, get_analysis_manifest, run_simulation, get_simulation_log
 from libsms.data_model import EcoliExperiment, SimulationRun
 
-__all__ = ["analysis_manifest", "analysis_output", "ecoli_experiment", "simulation_status"]
+__all__ = ["analysis_manifest", "analysis_output", "ecoli_experiment", "simulation_status", "simulation_log"]
 
 
 async def ecoli_experiment(
@@ -38,3 +38,7 @@ async def analysis_output(
     return await download_analysis_output(
         experiment, filename, variant, lineage_seed, generation, agent_id, max_retries, delay_s, verbose
     )
+
+
+async def simulation_log(experiment: EcoliExperiment) -> str:
+    return get_simulation_log(experiment)
