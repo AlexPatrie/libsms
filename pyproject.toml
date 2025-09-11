@@ -1,6 +1,6 @@
 [project]
 name = "libsms"
-version = "0.2.6"
+version = "0.2.7"
 description = "Interacting with the Simulating Microbial Systems (SMS Atlantis) API"
 readme = "README.md"
 requires-python = ">=3.11"
