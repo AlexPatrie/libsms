@@ -1,9 +1,10 @@
 from typing import Any
 
+from libsms.api import check_simulation_status, download_analysis_output, get_analysis_manifest, run_simulation
 from libsms.data_model import EcoliExperiment, SimulationRun
-from libsms.api import run_simulation, check_simulation_status, get_analysis_manifest
 
-__all__ = ["analysis_manifest", "ecoli_experiment", "simulation_status"]
+__all__ = ["analysis_manifest", "analysis_output", "ecoli_experiment", "simulation_status"]
+
 
 async def ecoli_experiment(
     config_id: str, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False, **body: dict[str, Any]
@@ -21,3 +22,19 @@ async def analysis_manifest(
     experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
 ) -> dict[str, Any] | None | Any:
     return await get_analysis_manifest(experiment, max_retries, delay_s, verbose)
+
+
+async def analysis_output(
+    experiment: EcoliExperiment,
+    filename: str,
+    variant: int = 0,
+    lineage_seed: int = 0,
+    generation: int = 1,
+    agent_id: int = 0,
+    max_retries: int = 20,
+    delay_s: float = 1.0,
+    verbose: bool = False,
+) -> Any | None:
+    return await download_analysis_output(
+        experiment, filename, variant, lineage_seed, generation, agent_id, max_retries, delay_s, verbose
+    )

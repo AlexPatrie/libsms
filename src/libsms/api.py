@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from libsms.data_model import EcoliExperiment, SimulationRun
 
-__all__ = ["analysis_manifest", "ecoli_experiment", "observables_data", "simulation_status"]
+__all__ = ["analysis_manifest", "analysis_output", "ecoli_experiment", "observables_data", "simulation_status"]
 
 
 def ecoli_experiment(
@@ -30,6 +30,24 @@ def analysis_manifest(
     experiment: EcoliExperiment, max_retries: int = 20, delay_s: float = 1.0, verbose: bool = False
 ) -> dict[str, Any] | None | Any:
     return asyncio.run(get_analysis_manifest(experiment, max_retries, delay_s, verbose))
+
+
+def analysis_output(
+    experiment: EcoliExperiment,
+    filename: str,
+    variant: int = 0,
+    lineage_seed: int = 0,
+    generation: int = 1,
+    agent_id: int = 0,
+    max_retries: int = 20,
+    delay_s: float = 1.0,
+    verbose: bool = False,
+) -> None | Any:
+    return asyncio.run(
+        download_analysis_output(
+            experiment, filename, variant, lineage_seed, generation, agent_id, max_retries, delay_s, verbose
+        )
+    )
 
 
 def observables_data(observables: list[str] | None = None, experiment_id: str | None = None) -> pl.DataFrame:
@@ -167,6 +185,52 @@ async def get_analysis_manifest(
     attempt = 0
     async with httpx.AsyncClient() as client:
         print(f"Getting analysis manifest for experiment: {experiment.experiment_id}...")
+        while attempt < max_retries:
+            attempt += 1
+            pbar.update(1)
+            try:
+                if verbose:
+                    print(f"Attempt {attempt}...")
+                response = await client.get(
+                    url,
+                    headers={"Accept": "application/json"},
+                    timeout=30.0,  # optional, adjust as needed
+                )
+
+                response.raise_for_status()  # raises for 4xx/5xx
+
+                data = response.json()
+                if verbose:
+                    print("Success on attempt", attempt)
+                pbar.total = attempt
+                pbar.close()
+                return data
+
+            except (httpx.RequestError, httpx.HTTPStatusError) as err:
+                if attempt == max_retries:
+                    print(f"Attempt {attempt} failed:", err)
+                    raise
+                await asyncio.sleep(delay_s)
+    pbar.close()
+    return None
+
+
+async def download_analysis_output(
+    experiment: EcoliExperiment,
+    filename: str,
+    variant: int = 0,
+    lineage_seed: int = 0,
+    generation: int = 1,
+    agent_id: int = 0,
+    max_retries: int = 20,
+    delay_s: float = 1.0,
+    verbose: bool = False,
+) -> None | Any:
+    url = f"https://sms.cam.uchc.edu/wcm/analysis/download?experiment_id={experiment.experiment_id}&variant_id={variant}&lineage_seed_id={lineage_seed}&generation_id={generation}&agent_id={agent_id}&filename={filename}"
+    pbar = tqdm(total=max_retries)
+    attempt = 0
+    async with httpx.AsyncClient() as client:
+        print(f"Fetching analysis output for experiment: {experiment.experiment_id}...")
         while attempt < max_retries:
             attempt += 1
             pbar.update(1)
