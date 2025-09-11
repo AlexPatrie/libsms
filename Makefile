@@ -1,7 +1,7 @@
 LATEST_PYPI_VERSION = $(shell uv run pip index versions libsms 2>/dev/null | sed -n 's/^Available versions: //p' | awk -F', ' '{print $$1}')
 CURRENT_VERSION = $(shell grep -E '^version\s*=' pyproject.toml | head -1 | sed -E 's/^version\s*=\s*"(.*)"/\1/' | sed 's/^version = //')
 
-.PHONY: fresh notebook test docs publish check python commit version
+.PHONY: fresh notebook test docs publish check python commit version new_push
 
 fresh:
 	@uv cache clean && rm -f uv.lock && uv lock --no-cache && uv sync --all-groups --no-cache
@@ -63,3 +63,6 @@ publish:
 
 python:
 	@uv run python -m asyncio
+
+new_push:
+	@git push --set-upstream $(branch)
