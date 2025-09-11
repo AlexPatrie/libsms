@@ -7,6 +7,7 @@ from zipfile import ZipFile
 import httpx
 import polars as pl
 import requests
+from tqdm import tqdm
 
 from libsms.data_model import EcoliExperiment, SimulationRun
 
@@ -75,9 +76,11 @@ async def _run_simulation(
         }
 
     attempt = 0
+    pbar = tqdm(total=max_retries)
     async with httpx.AsyncClient() as client:
         while attempt < max_retries:
             attempt += 1
+            pbar.update(1)
             try:
                 if verbose:
                     print(f"Attempt {attempt}...")
@@ -93,6 +96,8 @@ async def _run_simulation(
                 data = response.json()
                 if verbose:
                     print("Success on attempt", attempt)
+                pbar.total = attempt
+                pbar.close()
                 return EcoliExperiment(**data)
 
             except (httpx.RequestError, httpx.HTTPStatusError) as err:
@@ -100,6 +105,7 @@ async def _run_simulation(
                     print(f"Attempt {attempt} failed:", err)
                     raise
                 await asyncio.sleep(delay_s)
+    pbar.close()
     return None
 
 
@@ -115,6 +121,7 @@ async def _check_simulation_status(
     :rtype: SimulationRun
     :return: SimulationRun confirming run status (status will be one of "waiting", "running", "completed", "failed"
     """
+    pbar = tqdm(total=None)
     url = f"https://sms.cam.uchc.edu/wcm/simulation/run/status?experiment_tag={experiment.experiment_tag}"
     attempt = 0
     async with httpx.AsyncClient() as client:
@@ -141,6 +148,8 @@ async def _check_simulation_status(
                     print(f"Attempt {attempt} failed:", err)
                     raise
                 await asyncio.sleep(delay_s)
+            pbar.update(1.0)
+    pbar.close()
     return None
 
 

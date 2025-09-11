@@ -11,6 +11,7 @@ dependencies = [
     "polars[all]>=1.33.1",
     "pydantic>=2.11.7",
     "requests>=2.32.5",
+    "tqdm>=4.67.1",
 ]
 
 # [tool.setuptools]
@@ -33,6 +34,7 @@ dev = [
     "tox>=4.30.2",
     "types-pyyaml>=6.0.12.20250822",
     "types-requests>=2.32.4.20250809",
+    "types-tqdm>=4.67.0.20250809",
 ]
 docs = [
     "sphinx>=8.2.3",
