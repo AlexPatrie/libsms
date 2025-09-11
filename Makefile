@@ -1,4 +1,4 @@
-.PHONY: fresh notebook test docs publish check python
+.PHONY: fresh notebook test docs publish check python commit
 
 fresh:
 	@uv cache clean && rm -f uv.lock && uv lock --no-cache && uv sync --all-groups --no-cache
@@ -9,11 +9,23 @@ notebook:
 test:
 	@uv run pytest -s
 
+commit:
+	@git add --all && git commit -m $(message) && git push
+
 docs:
-	@cd documentation && uv run make clean && uv run make html && cd .. && git add --all && git commit -m "Updates to documentation" && git push
+	@now=$$(date '+%Y-%m-%d %H:%M:%S'); \
+	if [ -z "$(message)" ]; then \
+	  msg="Updates to documentation $${now}"; \
+	else \
+	  msg="$(message)"; \
+	fi; \
+	cd documentation && uv run make clean && uv run make html && cd .. && \
+	git add --all && git commit -m "$$msg" && git push
+
 
 publish:
-	@make fresh; \
+	@[ -z "$(message)" ] && port="Publish update" || message=$(message); \
+	make fresh; \
 	token=$$(cat ./assets/.pypi.token); \
 	rm -rf dist/; \
 	uv build; \
