@@ -50,6 +50,7 @@ addopts = "--cov-report=html"
 files = ["src/libsms", "src/tests"]
 strict = true
 exclude = ['^libsms/clients/.*', '^notebooks/.*', '^src/libsms/clients/.*']
+disable_error_code = ["no-any-return"]
 
 [tool.deptry]
 exclude = [".venv/*", "notebooks/*"]

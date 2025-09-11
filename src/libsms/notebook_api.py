@@ -1,9 +1,15 @@
 from typing import Any
 
-from libsms.api import check_simulation_status, download_analysis_output, get_analysis_manifest, run_simulation, get_simulation_log
+from libsms.api import (
+    check_simulation_status,
+    download_analysis_output,
+    get_analysis_manifest,
+    get_simulation_log,
+    run_simulation,
+)
 from libsms.data_model import EcoliExperiment, SimulationRun
 
-__all__ = ["analysis_manifest", "analysis_output", "ecoli_experiment", "simulation_status", "simulation_log"]
+__all__ = ["analysis_manifest", "analysis_output", "ecoli_experiment", "simulation_log", "simulation_status"]
 
 
 async def ecoli_experiment(
