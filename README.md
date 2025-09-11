@@ -1,4 +1,5 @@
 [![Documentation](https://img.shields.io/badge/documentation-online-blue.svg)](https://libsms.readthedocs.io/en/latest/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1UOA_qy_jprxKjsVewNrefiyGw7z_981D?usp=sharing)
 
 ### Regarding SMS API:
 
