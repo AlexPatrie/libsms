@@ -78,6 +78,7 @@ async def _run_simulation(
     attempt = 0
     pbar = tqdm(total=max_retries)
     async with httpx.AsyncClient() as client:
+        print(f'Running a simulation with config id: {config_id}...')
         while attempt < max_retries:
             attempt += 1
             pbar.update(1)
@@ -97,6 +98,7 @@ async def _run_simulation(
                 if verbose:
                     print("Success on attempt", attempt)
                 pbar.total = attempt
+                print('Simulation submitted!')
                 pbar.close()
                 return EcoliExperiment(**data)
 
