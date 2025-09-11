@@ -1,14 +1,6 @@
 LATEST_PYPI_VERSION = $(shell uv run pip index versions libsms 2>/dev/null | sed -n 's/^Available versions: //p' | awk -F', ' '{print $$1}')
 CURRENT_VERSION = $(shell grep -E '^version\s*=' pyproject.toml | head -1 | sed -E 's/^version\s*=\s*"(.*)"/\1/' | sed 's/^version = //')
 
-version:
-	@if [ "${CURRENT_VERSION}" = "${LATEST_PYPI_VERSION}" ]; then \
-		echo "Versions are the same!"; \
-	else \
-		echo "Versions are different!"; \
-	fi
-
-
 .PHONY: fresh notebook test docs publish check python commit version
 
 fresh:
@@ -28,6 +20,16 @@ commit:
 	  msg="$(message)"; \
 	fi; \
 	git add --all && git commit -m "$$msg" && git push
+
+check: ## Run code quality tools.
+	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
+	@uv lock --no-cache
+	@echo "🚀 Linting code: Running pre-commit"
+	@uv run pre-commit run -a
+	@echo "🚀 Static type checking: Running mypy"
+	@uv run mypy
+	@echo "🚀 Checking for obsolete dependencies: Running deptry"
+	@uv run deptry .
 
 docs:
 	@now=$$(date '+%Y-%m-%d %H:%M:%S'); \
@@ -58,16 +60,6 @@ publish:
 	uv build; \
 	uv publish --username "__token__" --password $$token; \
 	make docs message="$$msg"
-
-check: ## Run code quality tools.
-	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
-	@uv lock --no-cache
-	@echo "🚀 Linting code: Running pre-commit"
-	@uv run pre-commit run -a
-	@echo "🚀 Static type checking: Running mypy"
-	@uv run mypy
-	@echo "🚀 Checking for obsolete dependencies: Running deptry"
-	@uv run deptry .
 
 python:
 	@uv run python -m asyncio
