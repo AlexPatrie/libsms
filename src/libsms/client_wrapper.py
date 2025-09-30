@@ -1,12 +1,23 @@
 import asyncio
+import functools
 import io
 from pathlib import Path
+from typing import Any, Coroutine, TypeVar, Callable
 
 import httpx
 import polars
 
-from ._client import Client
 from libsms._client.errors import UnexpectedStatus
+
+from ._client import Client
+from ._client.api.analyses.fetch_experiment_analysis import asyncio_detailed as fetch_experiment_analysis_async
+from ._client.api.analyses.get_analysis_status import asyncio_detailed as get_analysis_status_async
+from ._client.api.analyses.get_analysis_tsv import asyncio_detailed as get_analysis_tsv_async
+from ._client.api.analyses.run_experiment_analysis import asyncio_detailed as run_analysis_async
+from ._client.api.simulations.get_ecoli_simulation import asyncio_detailed as get_simulation_async
+from ._client.api.simulations.get_ecoli_simulation_data import asyncio_detailed as get_simulation_data_async
+from ._client.api.simulations.get_ecoli_simulation_status import asyncio_detailed as get_simulation_status_async
+from ._client.api.simulations.run_ecoli_simulation import asyncio_detailed as run_simulation_async
 from ._client.models import (
     BodyRunEcoliSimulation,
     EcoliSimulationDTO,
@@ -18,18 +29,37 @@ from ._client.models import (
     SimulationRun,
 )
 from ._client.types import Response
-from ._client.api.simulations.run_ecoli_simulation import sync_detailed as run_simulation_sync, asyncio_detailed as run_simulation_async
-from ._client.api.simulations.get_ecoli_simulation_status import sync_detailed as get_simulation_status_sync, asyncio_detailed as get_simulation_status_async
-from ._client.api.simulations.get_ecoli_simulation import sync_detailed as get_simulation_sync, asyncio_detailed as get_simulation_async
-from ._client.api.analyses.fetch_experiment_analysis import (
-    sync_detailed as fetch_experiment_analysis_sync,
-    asyncio_detailed as fetch_experiment_analysis_async
-)
-from ._client.api.analyses.get_analysis_plots import asyncio_detailed as get_analysis_plots_async
-from ._client.api.analyses.get_analysis_status import sync_detailed as get_analysis_status_sync, asyncio_detailed as get_analysis_status_async
-from ._client.api.analyses.get_analysis_tsv import sync_detailed as get_analysis_tsv_sync, asyncio_detailed as get_analysis_tsv_async
-from ._client.api.analyses.run_experiment_analysis import sync_detailed as run_analysis_sync, asyncio_detailed as run_analysis_async
-from ._client.api.simulations.get_ecoli_simulation_data import asyncio_detailed as get_simulation_data_async, sync_detailed as get_simulation_data_sync
+
+T = TypeVar("T")
+
+
+def retry(
+    max_retries: int = 5,
+    backoff: float = 1.0,
+    exceptions: tuple = (httpx.TimeoutException, httpx.ConnectError, asyncio.TimeoutError)
+) -> Callable[[Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]]:
+
+    def decorator(func: Callable[..., Coroutine[Any, Any, T]]) -> Callable[..., Coroutine[Any, Any, T]]:
+        @functools.wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> T:
+            attempt = 0
+            delay = backoff
+            while True:
+                attempt += 1
+                try:
+                    result = await func(*args, **kwargs)
+                    # Retry on certain status codes
+                    if hasattr(result, 'status_code') and result.status_code >= 500:
+                        raise httpx.HTTPStatusError(f"Server error {result.status_code}")
+                    return result
+                except exceptions as e:
+                    if attempt >= max_retries:
+                        raise
+                    print(f"Caught {type(e).__name__}, retrying in {delay}s (attempt {attempt})...")
+                    await asyncio.sleep(delay)
+                    delay *= 2
+        return wrapper
+    return decorator
 
 
 class ClientWrapper:
@@ -51,6 +81,7 @@ class ClientWrapper:
             self.api_client.set_httpx_client(self.httpx_client)
         return self.api_client
 
+    @retry(max_retries=5)
     async def run_simulation(self, request: ExperimentRequest) -> EcoliSimulationDTO:
         api_client = self._get_api_client()
         response: Response[EcoliSimulationDTO | HTTPValidationError] = await run_simulation_async(
@@ -61,6 +92,7 @@ class ClientWrapper:
         else:
             raise TypeError(f"Unexpected response status: {response.status_code}, content: {type(response.content)}")
 
+    @retry(max_retries=5)
     async def get_simulation(self, database_id: int) -> EcoliSimulationDTO:
         api_client = self._get_api_client()
         response: Response[EcoliSimulationDTO | HTTPValidationError] = await get_simulation_async(
@@ -71,6 +103,7 @@ class ClientWrapper:
         else:
             raise TypeError(f"Unexpected response status: {response.status_code}, content: {type(response.content)}")
 
+    @retry(max_retries=5)
     async def get_simulation_status(self, simulation: EcoliSimulationDTO) -> SimulationRun:
         api_client = self._get_api_client()
         response: Response[SimulationRun | HTTPValidationError] = await get_simulation_status_async(
@@ -81,6 +114,7 @@ class ClientWrapper:
         else:
             raise TypeError(f"Unexpected response status: {response.status_code}, content: {type(response.content)}")
 
+    @retry(max_retries=5)
     async def run_analysis(self, request: ExperimentAnalysisRequest) -> ExperimentAnalysisDTO:
         api_client = self._get_api_client()
         response: Response[ExperimentAnalysisDTO | HTTPValidationError] = await run_analysis_async(
@@ -89,8 +123,12 @@ class ClientWrapper:
         if response.status_code == 200 and isinstance(response.parsed, ExperimentAnalysisDTO):
             return response.parsed
         else:
-            raise TypeError(f"Unexpected response status: {response.status_code}, content: {type(response.content)}")
+            # raise TypeError(f"Unexpected response status: {response.status_code}, content: {type(response.content)}")
+            raise UnexpectedStatus(
+                f"Unexpected response status: {response.status_code}, detail: {response.content.decode()}"
+            )
 
+    @retry(max_retries=5)
     async def get_analysis(self, database_id: int) -> ExperimentAnalysisDTO:
         api_client = self._get_api_client()
         response: Response[ExperimentAnalysisDTO | HTTPValidationError] = await fetch_experiment_analysis_async(
@@ -101,6 +139,7 @@ class ClientWrapper:
         else:
             raise TypeError(f"Unexpected response status: {response.status_code}, content: {type(response.content)}")
 
+    @retry(max_retries=5)
     async def get_analysis_status(self, analysis: ExperimentAnalysisDTO) -> SimulationRun:
         api_client = self._get_api_client()
         response: Response[SimulationRun | HTTPValidationError] = await get_analysis_status_async(
@@ -111,6 +150,7 @@ class ClientWrapper:
         else:
             raise TypeError(f"Unexpected response status: {response.status_code}, content: {type(response.content)}")
 
+    @retry(max_retries=5)
     async def get_tsv_outputs(self, analysis: ExperimentAnalysisDTO, outfile: Path | None = None) -> list[OutputFile]:
         api_client = self._get_api_client()
         response: Response[list[OutputFile] | HTTPValidationError] = await get_analysis_tsv_async(
@@ -130,6 +170,7 @@ class ClientWrapper:
         else:
             raise TypeError(f"Unexpected response status: {response.status_code}, content: {type(response.content)}")
 
+    @retry(max_retries=5)
     async def get_simulation_data(
         self,
         experiment_id: str,
@@ -170,4 +211,3 @@ def tsv_string_to_polars_df(output: OutputFile) -> polars.DataFrame:
     """
     formatted = format_tsv_string(output)
     return polars.read_csv(io.StringIO(formatted), separator="\t")
-

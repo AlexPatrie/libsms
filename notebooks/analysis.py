@@ -13,14 +13,14 @@ def _():
 
     from libsms._client.errors import UnexpectedStatus
     from libsms._client.models import (
-        OutputFile, 
-        ExperimentAnalysisRequest, 
-        ExperimentAnalysisRequestSingle, 
+        OutputFile,
+        ExperimentAnalysisRequest,
+        ExperimentAnalysisRequestSingle,
         ExperimentAnalysisRequestMultidaughter,
         ExperimentAnalysisRequestMultigeneration,
         ExperimentAnalysisRequestMultiseed,
         ExperimentAnalysisRequestMultivariant,
-        ExperimentAnalysisRequestMultiexperiment
+        ExperimentAnalysisRequestMultiexperiment,
     )
 
     from libsms.client_wrapper import AsyncClientWrapper, SyncClientWrapper, tsv_string_to_polars_df
@@ -41,7 +41,9 @@ def _(mo):
 
 @app.cell
 def _(mo, setId, uuid):
-    analysis_id_input = mo.ui.text(label="Enter Analysis ID", kind="text", value="sms_api", on_change=lambda val: setId(f"{val}-{uuid.uuid4()!s}"))
+    analysis_id_input = mo.ui.text(
+        label="Enter Analysis ID", kind="text", value="sms_api", on_change=lambda val: setId(f"{val}-{uuid.uuid4()!s}")
+    )
     analysis_id_input
     return
 
@@ -68,7 +70,6 @@ def _(
     def unique_id(scope: ApiScope) -> str:
         return f"libsms-pytest-{scope}-{uuid.uuid4()!s}"
 
-
     def run_analysis():
         analysis_payload = {
             "experiment_id": "sms_multigeneration",
@@ -87,6 +88,7 @@ def _(
             analysis = sync_client.run_analysis(request=analysis_request)
 
         setAnalysis(analysis)
+
     return (run_analysis,)
 
 
@@ -110,6 +112,7 @@ def _(getAnalysis, setStatus, sync_client):
         if analysis is not None:
             status = sync_client.get_analysis_status(analysis=analysis)
             setStatus(status)
+
     return (check_status,)
 
 

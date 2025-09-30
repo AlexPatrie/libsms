@@ -13,11 +13,7 @@ async def test_get_simulation_data() -> None:
 
     client = ClientWrapper(base_url=base_url)
     data_response = await client.get_simulation_data(
-        experiment_id=expid,
-        lineage=lineage_seed,
-        generation=generation,
-        obs=observables
+        experiment_id=expid, lineage=lineage_seed, generation=generation, obs=observables
     )
     assert sorted(data_response.columns) == sorted(["bulk", "time", "listeners__rnap_data__termination_loss"])
     print(data_response)
-
