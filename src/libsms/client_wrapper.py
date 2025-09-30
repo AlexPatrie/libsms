@@ -1,8 +1,9 @@
+import abc
 import asyncio
 import functools
 import io
 from pathlib import Path
-from typing import Any, Callable, Coroutine, TypeVar
+from typing import Any, Callable, Coroutine, TypeVar, override
 
 import httpx
 import polars
@@ -36,11 +37,12 @@ T = TypeVar("T")
 def retry(
     max_retries: int = 5,
     backoff: float = 1.0,
-    exceptions: tuple = (  # type: ignore[type-arg]
+    exceptions: tuple[type[BaseException], ...] = (
         httpx.TimeoutException,
         httpx.ConnectError,
         asyncio.TimeoutError,
-        Exception,
+        httpx.HTTPStatusError,
+        UnexpectedStatus,
     ),
 ) -> Callable[[Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]]:
     def decorator(func: Callable[..., Coroutine[Any, Any, T]]) -> Callable[..., Coroutine[Any, Any, T]]:
@@ -52,21 +54,24 @@ def retry(
                 attempt += 1
                 try:
                     result = await func(*args, **kwargs)
-                    # Retry on certain status codes
                     if hasattr(result, "status_code") and result.status_code >= 500:
-                        fake_request = httpx.Request("GET", "http://example.com")
-                        fake_response = httpx.Response(status_code=500, request=fake_request, content=b"")
                         raise httpx.HTTPStatusError(
-                            "Server error 500",
-                            request=fake_request,
-                            response=fake_response,
+                            f"Server error {result.status_code}",
+                            request=httpx.Request("GET", "http://example.com"),
+                            response=httpx.Response(
+                                status_code=result.status_code,
+                                request=httpx.Request("GET", "http://example.com"),
+                                content=b"",
+                            ),
                         )
-                        # raise httpx.HTTPStatusError(f"Server error {result.status_code}", request=T)  # type: ignore[misc]
                     return result
                 except exceptions as e:
                     if attempt >= max_retries:
+                        print(f"Giving up after {attempt} attempts")
                         raise
-                    print(f"Caught {type(e).__name__}, retrying in {delay}s (attempt {attempt})...")
+                    _arrow = ("=" * attempt) + ">"
+                    print(f"{_arrow} ...Fetching data...")
+                    # print(f"Caught {type(e).__name__}, retrying in {delay}s (attempt {attempt})...")
                     await asyncio.sleep(delay)
                     delay *= 2
 
@@ -75,7 +80,7 @@ def retry(
     return decorator
 
 
-class ClientWrapper:
+class ClientWrapper(abc.ABC):
     """
     A wrapper for the client that provides a consistent interface for making requests.
     """
@@ -84,8 +89,12 @@ class ClientWrapper:
     api_client: Client | None = None
     httpx_client: httpx.Client | None = None
 
-    def __init__(self, base_url: str):
-        self.base_url = base_url
+    def __init__(self, base_url: str | None = None):
+        self.base_url = base_url or self._base_url()
+
+    @abc.abstractmethod
+    def _base_url(self) -> str:
+        pass
 
     def _get_api_client(self) -> Client:
         if self.api_client is None:
@@ -96,6 +105,7 @@ class ClientWrapper:
 
     @retry(max_retries=10)
     async def run_simulation(self, request: ExperimentRequest) -> EcoliSimulationDTO:
+        """Launch a vEcoli simulation."""
         api_client = self._get_api_client()
         response: Response[EcoliSimulationDTO | HTTPValidationError] = await run_simulation_async(
             client=api_client, body=BodyRunEcoliSimulation(request=request)
@@ -107,6 +117,7 @@ class ClientWrapper:
 
     @retry(max_retries=10)
     async def get_simulation(self, database_id: int) -> EcoliSimulationDTO:
+        """Get an uploaded simulation spec from the database."""
         api_client = self._get_api_client()
         response: Response[EcoliSimulationDTO | HTTPValidationError] = await get_simulation_async(
             client=api_client, id=database_id
@@ -118,6 +129,7 @@ class ClientWrapper:
 
     @retry(max_retries=10)
     async def get_simulation_status(self, simulation: EcoliSimulationDTO) -> SimulationRun:
+        """Get the status of a running simulation."""
         api_client = self._get_api_client()
         response: Response[SimulationRun | HTTPValidationError] = await get_simulation_status_async(
             client=api_client, id=simulation.database_id
@@ -129,6 +141,7 @@ class ClientWrapper:
 
     @retry(max_retries=10)
     async def run_analysis(self, request: ExperimentAnalysisRequest) -> ExperimentAnalysisDTO:
+        """Run a simulation analysis on existing simulation results."""
         api_client = self._get_api_client()
         response: Response[ExperimentAnalysisDTO | HTTPValidationError] = await run_analysis_async(
             client=api_client, body=request
@@ -146,6 +159,7 @@ class ClientWrapper:
 
     @retry(max_retries=10)
     async def get_analysis(self, database_id: int) -> ExperimentAnalysisDTO:
+        """Get an uploaded analysis spec from the database."""
         api_client = self._get_api_client()
         response: Response[ExperimentAnalysisDTO | HTTPValidationError] = await fetch_experiment_analysis_async(
             client=api_client, id=database_id
@@ -157,6 +171,7 @@ class ClientWrapper:
 
     @retry(max_retries=10)
     async def get_analysis_status(self, analysis: ExperimentAnalysisDTO) -> SimulationRun:
+        """Get the status of a running analysis."""
         api_client = self._get_api_client()
         response: Response[SimulationRun | HTTPValidationError] = await get_analysis_status_async(
             client=api_client, id=analysis.database_id
@@ -168,6 +183,7 @@ class ClientWrapper:
 
     @retry(max_retries=10)
     async def get_tsv_outputs(self, analysis: ExperimentAnalysisDTO, outfile: Path | None = None) -> list[OutputFile]:
+        """Get the tsv outputs of a given simulation analysis: (ptools)"""
         api_client = self._get_api_client()
         response: Response[list[OutputFile] | HTTPValidationError] = await get_analysis_tsv_async(
             client=api_client, id=analysis.database_id
@@ -196,6 +212,17 @@ class ClientWrapper:
         variant: int = 0,
         agent_id: int = 0,
     ) -> polars.DataFrame:
+        """Get the requested simulation data results (parquet) as a polars dataframe.
+
+        :param experiment_id: (str) Experiment ID of the given queried simulation. Note: this ID must refer to a simulation that has already been run.
+        :param obs: (list[str]) List of observable names, in hive partition format, that you wish to retrieve from the output results. Note: this function
+            aggregates and slices the vEcoli simulation parquet output. Refer to vEcoli documentation for more details on column labels.
+        :param lineage: (int): Lineage seed ID from which results will be fetched.
+        :param generation: (int) Generation ID from which results will be fetched. Defaults to `1`.
+        :param variant: (int) Variant ID from which results will be fetched. Defaults to `0`.
+        :param agent_id: (int): Agent ID from which results will be fetched. Defaults to `1`.
+        :return: `polars.DataFrame` of requested simulation output data
+        """
         api_client = self._get_api_client()
         response = await get_simulation_data_async(
             client=api_client,
@@ -211,6 +238,26 @@ class ClientWrapper:
             return polars.from_dicts(response.parsed).sort("time")  # type: ignore[arg-type]
         else:
             raise TypeError(f"Unexpected response status: {response.status_code}, content: {type(response.content)}")
+
+
+class ClientAcademic(ClientWrapper):
+    @override
+    def _base_url(self) -> str:
+        return "https://sms.cam.uchc.edu"
+
+
+class ClientLocal(ClientWrapper):
+    def __init__(self, port: int = 8888, base_url: str | None = None):
+        super().__init__(base_url)
+        self.port = port
+
+    @override
+    def _base_url(self) -> str:
+        return "http://localhost"
+
+
+class SmsApi(ClientAcademic):
+    pass
 
 
 def format_tsv_string(output: OutputFile) -> str:

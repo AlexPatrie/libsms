@@ -1,6 +1,6 @@
 import pytest
 
-from libsms.client_wrapper import ClientWrapper
+from libsms.client_wrapper import ClientAcademic
 
 
 @pytest.mark.asyncio
@@ -11,7 +11,7 @@ async def test_get_simulation_data() -> None:
     generation = 1
     observables = ["bulk", "listeners__rnap_data__termination_loss"]
 
-    client = ClientWrapper(base_url=base_url)
+    client = ClientAcademic(base_url=base_url)
     data_response = await client.get_simulation_data(
         experiment_id=expid, lineage=lineage_seed, generation=generation, obs=observables
     )
