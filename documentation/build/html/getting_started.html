@@ -93,22 +93,24 @@ for UV here: <a class="reference external" href="https://docs.astral.sh/uv/">htt
 <section id="quick-example">
 <h2>Quick Example<a class="headerlink" href="#quick-example" title="Link to this heading"></a></h2>
 <p>Here’s the simplest way to run a full vEcoli workflow via the SMS REST API:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">libsms</span> <span class="n">ecoli_experiment</span><span class="p">,</span> <span class="n">simulation_status</span><span class="p">,</span> <span class="n">analysis_manifest</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">libsms</span><span class="w"> </span><span class="kn">import</span> <span class="n">sms_api</span><span class="p">,</span> <span class="n">models</span>
 
 <span class="c1"># 1.) Generate and run a simulation experiment</span>
 <span class="c1"># ========================================== #</span>
-<span class="n">config_id</span> <span class="o">=</span> <span class="s2">&quot;sms&quot;</span>  <span class="c1"># config id for the &quot;core&quot; single-cell simulation</span>
-<span class="n">experiment</span> <span class="o">=</span> <span class="n">ecoli_experiment</span><span class="p">(</span><span class="n">config_id</span><span class="o">=</span><span class="n">config_id</span><span class="p">)</span>
+<span class="n">experiment_id</span> <span class="o">=</span> <span class="s2">&quot;my_test_simulation&quot;</span>
+<span class="n">simulation</span> <span class="o">=</span> <span class="k">await</span> <span class="n">sms_api</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">(</span>
+    <span class="n">request</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">ExperimentRequest</span><span class="p">(</span><span class="n">experiment_id</span><span class="o">=</span><span class="n">experiment_id</span><span class="p">,</span> <span class="n">simulation_name</span><span class="o">=</span><span class="n">experiment_id</span><span class="p">)</span>
+<span class="p">)</span>
 
 <span class="c1"># 2.) Check the simulation experiment status</span>
 <span class="c1"># ======================================== #</span>
-<span class="n">status</span> <span class="o">=</span> <span class="n">simulation_status</span><span class="p">(</span><span class="n">experiment</span><span class="o">=</span><span class="n">experiment</span><span class="p">)</span>
+<span class="n">current_status</span> <span class="o">=</span> <span class="n">sms_api</span><span class="o">.</span><span class="n">get_simulation_status</span><span class="p">(</span><span class="n">simulation</span><span class="o">=</span><span class="n">simulation</span><span class="p">)</span>
 
-<span class="c1"># 3.) Get manifest of available analysis outputs</span>
-<span class="c1"># ============================================ #</span>
-<span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;completed&quot;</span><span class="p">:</span>
-    <span class="n">available_analysis_outputs</span> <span class="o">=</span> <span class="n">analysis_manifest</span><span class="p">(</span><span class="n">experiment</span><span class="o">=</span><span class="n">experiment</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">available_analysis_outputs</span><span class="p">)</span>
+<span class="c1"># 3.) Get the simulation outputs, indexed by requested column(s)</span>
+<span class="c1"># ============================================================ #</span>
+<span class="k">if</span> <span class="n">current_status</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;completed&quot;</span><span class="p">:</span>
+    <span class="n">observables</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;bulk&quot;</span><span class="p">,</span> <span class="s2">&quot;listeners__rnap_data__termination_loss&quot;</span><span class="p">]</span>
+    <span class="n">df</span><span class="p">:</span> <span class="s2">&quot;polars.DataFrame&quot;</span> <span class="o">=</span> <span class="k">await</span> <span class="n">sms_api</span><span class="o">.</span><span class="n">get_simulation_data</span><span class="p">(</span><span class="n">experiment_id</span><span class="o">=</span><span class="n">simulation</span><span class="o">.</span><span class="n">experiment_id</span><span class="p">,</span> <span class="n">obs</span><span class="o">=</span><span class="n">observables</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

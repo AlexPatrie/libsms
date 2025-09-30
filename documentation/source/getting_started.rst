@@ -28,19 +28,21 @@ Here’s the simplest way to run a full vEcoli workflow via the SMS REST API:
 
 .. code-block:: python
 
-    from libsms ecoli_experiment, simulation_status, analysis_manifest
+    from libsms import sms_api, models
 
     # 1.) Generate and run a simulation experiment
     # ========================================== #
-    config_id = "sms"  # config id for the "core" single-cell simulation
-    experiment = ecoli_experiment(config_id=config_id)
+    experiment_id = "my_test_simulation"
+    simulation = await sms_api.run_simulation(
+        request=models.ExperimentRequest(experiment_id=experiment_id, simulation_name=experiment_id)
+    )
 
     # 2.) Check the simulation experiment status
     # ======================================== #
-    status = simulation_status(experiment=experiment)
+    current_status = sms_api.get_simulation_status(simulation=simulation)
 
-    # 3.) Get manifest of available analysis outputs
-    # ============================================ #
-    if status["status"].lower() == "completed":
-        available_analysis_outputs = analysis_manifest(experiment=experiment)
-        print(available_analysis_outputs)
+    # 3.) Get the simulation outputs, indexed by requested column(s)
+    # ============================================================ #
+    if current_status.status.lower() == "completed":
+        observables = ["bulk", "listeners__rnap_data__termination_loss"]
+        df: "polars.DataFrame" = await sms_api.get_simulation_data(experiment_id=simulation.experiment_id, obs=observables)
