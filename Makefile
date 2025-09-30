@@ -1,7 +1,11 @@
 LATEST_PYPI_VERSION = $(shell uv run pip index versions libsms 2>/dev/null | sed -n 's/^Available versions: //p' | awk -F', ' '{print $$1}')
-CURRENT_VERSION = $(shell grep -E '^version\s*=' pyproject.toml | head -1 | sed -E 's/^version\s*=\s*"(.*)"/\1/' | sed 's/^version = //')
+# CURRENT_VERSION = $(shell grep -E '^version\s*=' pyproject.toml | head -1 | sed -E 's/^version\s*=\s*"(.*)"/\1/' | sed 's/^version = //')
+CURRENT_VERSION := $(shell uv run python -c "from libsms import version;print(f'{version.__version__}')")
 
-.PHONY: fresh notebook test docs publish check python commit version new_push
+.PHONY: fresh notebook test docs publish check python commit version new_push version
+
+version:
+	@echo ${CURRENT_VERSION}
 
 fresh:
 	@uv cache clean && rm -f uv.lock && uv lock --no-cache && uv sync --all-groups --no-cache
@@ -10,7 +14,12 @@ notebook:
 	@uv run --no-cache marimo edit notebooks/$(f).py
 
 test:
-	@uv run pytest -s
+	@uv run python -m pytest \
+		--cov \
+		--cov-config=pyproject.toml \
+		--cov-report=xml \
+		--log-file=tests/.pytest.log \
+		--log-file-level=ERROR
 
 commit:
 	@now=$$(date '+%Y-%m-%d %H:%M:%S'); \
@@ -55,7 +64,7 @@ publish:
 		echo "Version is new!"; \
 	fi;
 	make fresh; \
-	token=$$(cat ./assets/.pypi.token); \
+	token=$$(cat ~/.pypi/libsms); \
 	rm -rf dist/; \
 	uv build; \
 	uv publish --username "__token__" --password $$token; \

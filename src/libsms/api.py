@@ -115,7 +115,7 @@ def get_simulation_log(experiment: EcoliExperiment) -> str:
 
     headers = {"accept": "application/json", "Content-Type": "application/json"}
 
-    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
 
     # Get JSON response
     data = response.json()
@@ -326,7 +326,7 @@ def unzip_parquet(zip_file_path: Path, local_dirpath: Path) -> None:
 def download_parquet(local_dirpath: Path, experiment_id: str) -> Path:
     url = f"https://sms.cam.uchc.edu/core/download/parquet?experiment_id={experiment_id}"
 
-    response = requests.post(url, headers={"Accept": "*/*"})
+    response = requests.post(url, headers={"Accept": "*/*"}, timeout=60)
 
     if response.status_code != 200:
         raise Exception(f"HTTP error! status: {response.status_code}")

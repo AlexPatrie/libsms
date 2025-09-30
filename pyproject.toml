@@ -1,17 +1,18 @@
 [project]
 name = "libsms"
-version = "0.2.8"
+version = "0.2.9"
 description = "Interacting with the Simulating Microbial Systems (SMS Atlantis) API"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.116.1",
+    "fastapi>=0.118.0",
     "httpx>=0.28.1",
     "orjson>=3.11.3",
     "polars[all]>=1.33.1",
-    "pydantic>=2.11.7",
+    "pydantic>=2.11.9",
     "requests>=2.32.5",
     "tqdm>=4.67.1",
+    "uv-build>=0.8.15",
 ]
 
 [build-system]
@@ -20,17 +21,18 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "debugpy>=1.8.16",
+    "debugpy>=1.8.17",
     "deptry>=0.23.1",
-    "mypy>=1.17.1",
+    "ipdb>=0.13.13",
+    "mypy>=1.18.2",
     "pre-commit>=4.3.0",
     "pytest>=8.4.2",
-    "pytest-asyncio>=1.1.0",
+    "pytest-asyncio>=1.2.0",
     "pytest-cov>=7.0.0",
-    "testcontainers>=4.13.0",
     "tox>=4.30.2",
-    "types-pyyaml>=6.0.12.20250822",
-    "types-requests>=2.32.4.20250809",
+    "types-python-dateutil>=2.9.0.20250822",
+    "types-pyyaml>=6.0.12.20250915",
+    "types-requests>=2.32.4.20250913",
     "types-tqdm>=4.67.0.20250809",
 ]
 docs = [
@@ -39,7 +41,7 @@ docs = [
     "sphinx-rtd-theme>=3.0.2",
 ]
 notebooks = [
-    "marimo>=0.15.2",
+    "marimo[recommended]>=0.16.3",
 ]
 
 [tool.pytest.ini_options]
@@ -49,7 +51,7 @@ addopts = "--cov-report=html"
 [tool.mypy]
 files = ["src/libsms", "src/tests"]
 strict = true
-exclude = ['^libsms/clients/.*', '^notebooks/.*', '^src/libsms/clients/.*']
+# exclude = ['^libsms/clients/.*', '^notebooks/.*', '^src/libsms/_client/.*']
 disable_error_code = ["no-any-return"]
 
 [tool.deptry]
@@ -95,19 +97,78 @@ select = [
     "TRY",
 ]
 ignore = [
+    # "DEP001",
+    # A001 Variable `sum` is shadowing a Python builtin
+     "A001",
+     "A002",
+    # B008 Do not perform function call `Body` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+    "B008",
+    # B026 Star-arg unpacking after a keyword argument is strongly discouraged
+    "B026",
+    # B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
     "B904",
+    # C414 Unnecessary `list` call within `tuple()`
+    "C414",
+    # C416 Unnecessary `list` comprehension (rewrite using `list()`)
+    "C416",
+    # C417 Unnecessary `map` usage (rewrite using a `list` comprehension)
+    "C417",
+    # C419 Unnecessary list comprehension
+    "C419",
+    # E501 Line too long (131 > 120)
+    "E501",
+    # E722 Do not use bare `except`
+    "E722",
+    # E731 Do not assign a `lambda` expression, use a `def`
+    "E731",
+    # F841 Local variable `keys` is assigned to but never used
+    "F841",
+    # PGH003 Use specific rule codes when ignoring type issues
+    "PGH003",
+    # RUF009 Do not perform function call `Field` in dataclass defaults
+    "RUF009",
+    # RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
     "RUF012",
-    "TRY002",
-    "TRY003",
-    "TRY201",
-    "TRY300",
-    "UP006",
-    "S113",
+    # RUF013 PEP 484 prohibits implicit `Optional
+    "RUF013",
+    # S101 Use of `assert` detected
     "S101",
+    # *** S113 Probable use of `requests` call without timeout
+    "S113",
+    # S301 `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
+    "S301",
+    # S307 Use of possibly insecure function
+    "S307",
+    # S603 `subprocess` call: check for execution of untrusted input
+    "S603",
+    # S608 Possible SQL injection vector through string-based query construction
+    "S608",
+    # SIM101 Multiple `isinstance` calls for expression, merge into a single call
+    "SIM101",
+    # SIM105 Use `contextlib.suppress(KeyError)` instead of `try`-`except`-`pass`
+    "SIM105",
+    # SIM108 Use ternary operator `source = self.model_source.value if isinstance(self.model_source, ModelFilepath) else self.model_source` instead of `if`-`else`-block
+    "SIM108",
+    # SIM118 Use `key not in dict` instead of `key not in dict.keys()`
     "SIM118",
-    "A001"
+    # TRY002 Create your own exception
+    "TRY002",
+    # TRY003 Avoid specifying long messages outside the exception class
+    "TRY003",
+    # TRY004 Prefer `TypeError` exception for invalid type
+    "TRY004",
+    # TRY201 Use `raise` without specifying exception name
+    "TRY201",
+    # TRY300 Consider moving this statement to an `else` block
+    "TRY300",
+    # TRY400 Use `logging.exception` instead of `logging.error`
+    "TRY400",
+    # UP006 Use `dict` instead of `Dict` for type annotation
+    "UP006",
+    # UP035 `typing.Dict` is deprecated, use `dict` instead
+    "UP035",
 ]
-exclude = [".venv/*", "notebooks/*", "src/libsms/clients/*"]
+exclude = [".venv/*", "notebooks/*", "src/libsms/_client/*"]
 
 [tool.ruff.format]
 preview = true
@@ -120,4 +181,4 @@ branch = true
 source = ["src/libsms"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]
+"src/tests/*" = ["S101"]
