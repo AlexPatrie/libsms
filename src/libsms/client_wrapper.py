@@ -40,6 +40,7 @@ def retry(
         httpx.TimeoutException,
         httpx.ConnectError,
         asyncio.TimeoutError,
+        Exception,
     ),
 ) -> Callable[[Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]]:
     def decorator(func: Callable[..., Coroutine[Any, Any, T]]) -> Callable[..., Coroutine[Any, Any, T]]:
@@ -53,18 +54,14 @@ def retry(
                     result = await func(*args, **kwargs)
                     # Retry on certain status codes
                     if hasattr(result, "status_code") and result.status_code >= 500:
-                        raise httpx.HTTPStatusError(f"Server error {result.status_code}", request=T)
-                        # Build a fake httpx.Response to satisfy HTTPStatusError
-                        # fake_response = httpx.Response(
-                        #     status_code=result.status_code,
-                        #     request=httpx.Request("GET", "http://example.com"),
-                        #     content=getattr(result, "content", b""),
-                        # )
-                        # raise httpx.HTTPStatusError(
-                        #     f"Server error {result.status_code}",
-                        #     request=fake_response.request,
-                        #     response=fake_response,
-                        # )
+                        fake_request = httpx.Request("GET", "http://example.com")
+                        fake_response = httpx.Response(status_code=500, request=fake_request, content=b"")
+                        raise httpx.HTTPStatusError(
+                            "Server error 500",
+                            request=fake_request,
+                            response=fake_response,
+                        )
+                        # raise httpx.HTTPStatusError(f"Server error {result.status_code}", request=T)  # type: ignore[misc]
                     return result
                 except exceptions as e:
                     if attempt >= max_retries:
