@@ -52,11 +52,11 @@ addopts = "--cov-report=html"
 [tool.mypy]
 files = ["src/libsms", "src/tests"]
 strict = true
-# exclude = ['^libsms/clients/.*', '^notebooks/.*', '^src/libsms/_client/.*']
+exclude = ['^notebooks/.*', '^src/libsms/_client/.*', '^documentation/.*']
 disable_error_code = ["no-any-return"]
 
 [tool.deptry]
-exclude = [".venv/*", "notebooks/*"]
+exclude = [".venv/*", "notebooks/*", "documentation/*"]
 ignore = ["DEP002", "DEP003", "DEP004"]
 
 [tool.ruff]
@@ -169,7 +169,7 @@ ignore = [
     # UP035 `typing.Dict` is deprecated, use `dict` instead
     "UP035",
 ]
-exclude = [".venv/*", "notebooks/*", "src/libsms/_client/*"]
+exclude = [".venv/*", "notebooks/*", "src/libsms/_client/*", "documentation/*"]
 
 [tool.ruff.format]
 preview = true

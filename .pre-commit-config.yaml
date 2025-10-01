@@ -3,17 +3,20 @@ repos:
     rev: "v5.0.0"
     hooks:
       - id: check-case-conflict
+        exclude: ^documentation/
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
-        exclude: ^kustomize/
+        exclude: ^documentation/
       - id: check-json
-        exclude: (^\.devcontainer/|^\.vscode/)
+        exclude: (^\.devcontainer/|^\.vscode/|^\documentation/)
       - id: pretty-format-json
-        exclude: (^\.devcontainer/|^\.vscode/)
+        exclude: (^\.devcontainer/|^\.vscode/|^\documentation/)
         args: [ --autofix, --no-sort-keys ]
       - id: end-of-file-fixer
+        exclude: ^documentation/
       - id: trailing-whitespace
+        exclude: ^documentation/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: "v0.11.5"

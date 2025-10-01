@@ -48,7 +48,7 @@ docs:
 	  msg="$(message)"; \
 	fi; \
 	cd documentation && uv run make clean && uv run make html && cd .. && \
-	make commit message="$$msg"
+	make check && make commit message="$$msg"
 
 publish:
 	@now=$$(date '+%Y-%m-%d %H:%M:%S'); \
